@@ -3,9 +3,9 @@ import express from "express";
 import { Server as SocketServer } from 'socket.io';
 
 export const app = express();
-let userCount = 0;
+// let userCount = 0;
 let monitorName ="monitor-app";
-let monitorId = '';
+let monitorId = [];
 
 
 const server = http.createServer(app);
@@ -24,31 +24,51 @@ const io = new SocketServer(server, socketParams);
 io.on('connection', (socket) => {
     console.log('A user connected');
     // console.log(socket.handshake);
-    // console.log('from',socket.handshake.query.from_type);
+    console.log('from',socket.handshake.query);
     if(monitorName == socket.handshake.query.from_type ){
-      monitorId = socket.id;
+        let index = monitorId.findIndex((x)=>x===socket.id);
+           if(index == -1){
+             monitorId.push(socket.id);
+           }
+    //   monitorId = socket.id;
     }
-    if(monitorName !== socket.handshake.query.from_type ){
-        userCount++;
-      }
-    if(monitorId){
-        io.to(monitorId).emit('userdetails', {...socket.handshake.query});
+    // if(monitorName !== socket.handshake.query.from_type ){
+    //     userCount++;
+    //   }
+    if(monitorId.length>0){
+        monitorId.forEach((x)=>{
+            io.to(x).emit('userdetails', {...socket.handshake.query});
+        })
     }
     // socket.disconnect(true)
-    socket.on('disconnect', (data) => {
-        console.log('A user disconnected');
-        if(monitorName !== socket.handshake.query.from_type ){
-            userCount--;
-          }
-        if(monitorId){
-        io.to(monitorId).emit('userdetails', data);
-       }
+    socket.on('disconnect', () => {
+        console.log('A user disconnected',);
+        // if(monitorName !== socket.handshake.query.from_type ){
+        //     userCount--;
+        //   }
+        if(monitorName == socket.handshake.query.from_type ){
+         let index = monitorId.findIndex((x)=>x===socket.id);
+           if(index == -1){
+             monitorId.splice(index,1);
+           }
+        }
+        console.log(socket.handshake.query)
+        console.log(monitorId)
+        if(monitorId.length>0){
+            monitorId.forEach((x)=>{
+                io.to(x).emit('userdetails', {...socket.handshake.query});
+            })
+        }
     });
 
     // listen 
     socket.on('details', (data) => {
         console.log(data);
-        io.to(monitorId).emit('userdetails', data);
+        if(monitorId.length>0){
+            monitorId.forEach((x)=>{
+                io.to(x).emit('userdetails', data);
+            })
+        }
     });
 });
 
