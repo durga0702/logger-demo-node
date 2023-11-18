@@ -6,6 +6,8 @@ export const app = express();
 // let userCount = 0;
 let monitorName ="monitor-app";
 let monitorId = [];
+let hostname ="host-app";
+let connectedUsers = [];
 
 
 const server = http.createServer(app);
@@ -23,18 +25,25 @@ const io = new SocketServer(server, socketParams);
 // Define Socket.io behavior
 io.on('connection', (socket) => {
     console.log('A user connected');
-    // console.log(socket.handshake);
     console.log('from',socket.handshake.query);
+
+    // monitor - store socket ids into array
     if(monitorName == socket.handshake.query.from_type ){
         let index = monitorId.findIndex((x)=>x===socket.id);
            if(index == -1){
              monitorId.push(socket.id);
            }
-    //   monitorId = socket.id;
     }
-    // if(monitorName !== socket.handshake.query.from_type ){
-    //     userCount++;
-    //   }
+
+    // host App - store host user Ids and socket Ids into array
+    if(hostname == socket.handshake.query.from_type ){
+        let index = connectedUsers.findIndex((x)=>x.id===socket.handshake.query.user_id);
+           if(index == -1){
+             monitorId.push({user_id:socket.handshake.query.user_id})
+             console.log('user', connectedUsers);
+    }
+}
+
     if(monitorId.length>0){
         monitorId.forEach((x)=>{
             io.to(x).emit('userdetails', {...socket.handshake.query});
@@ -43,21 +52,35 @@ io.on('connection', (socket) => {
     // socket.disconnect(true)
     socket.on('disconnect', () => {
         console.log('A user disconnected',);
-        // if(monitorName !== socket.handshake.query.from_type ){
-        //     userCount--;
-        //   }
-        if(monitorName == socket.handshake.query.from_type ){
+        // remove monitor id
+       if(monitorName == socket.handshake.query.from_type ){
          let index = monitorId.findIndex((x)=>x===socket.id);
            if(index == -1){
              monitorId.splice(index,1);
            }
         }
+
+        //remove user
+        if(hostname == socket.handshake.query.from_type ){
+            let index = connectedUsers.findIndex((x)=>x.user_id===socket.handshake.query.user_id);
+              if(index == -1){
+                connectedUsers.splice(index,1);
+              }
+              console.log(connectedUsers);
+           }
+
         console.log(socket.handshake.query)
         console.log(monitorId)
         if(monitorId.length>0){
+            console.log('entered')
+            console.log(monitorId)
+            let data={
+                ...socket.handshake.query
+            }
+            data.status = "disconnect";
             monitorId.forEach((x)=>{
-                io.to(x).emit('userdetails', {...socket.handshake.query});
-            })
+                io.to(x).emit('userdetails', {...data});
+            });
         }
     });
 
