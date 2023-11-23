@@ -84,8 +84,18 @@ io.on('connection', (socket) => {
         }
     });
 
-    // listen 
-    socket.on('details', (data) => {
+    // listen route change
+    socket.on('routedetail', (data) => {
+        console.log(data);
+        if(monitorId.length>0){
+            monitorId.forEach((x)=>{
+                io.to(x).emit('userdetails', data);
+            })
+        }
+    });
+
+     // listen country
+     socket.on('countrydetail', (data) => {
         console.log(data);
         if(monitorId.length>0){
             monitorId.forEach((x)=>{
